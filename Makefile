@@ -29,6 +29,7 @@ FP_FLAGS    = -msoft-float
 ARCH_FLAGS  = -mthumb -mcpu=cortex-m3 $(FP_FLAGS) -mfix-cortex-m3-ldrd
 
 CFLAGS     += -Os -Wall -g
+#CFLAGS     += -Wextra
 CFLAGS     += -fno-common -ffunction-sections -fdata-sections
 CFLAGS     += $(ARCH_FLAGS) $(DEFS) $(INCS)
 
@@ -36,11 +37,12 @@ LDPATH      = libopencm3/lib/
 
 LIBM        = $(shell $(CC) $(CFLAGS) --print-file-name=libm.a)
 LIBC        = $(shell $(CC) $(CFLAGS) --print-file-name=libc.a)
+LIBNOSYS    = $(shell $(CC) $(CFLAGS) --print-file-name=libnosys.a)
 LIBGCC      = $(shell $(CC) $(CFLAGS) --print-libgcc-file-name)
 LIBOPENCM3  = $(LDPATH)/libopencm3_stm32f1.a
 
 LDFLAGS    += -L$(LDPATH) -T$(LDSCRIPT) -Map $(MAP) --gc-sections
-LDLIBS     += $(LIBOPENCM3) $(LIBC) $(LIBGCC)
+LDLIBS     += $(LIBOPENCM3) $(LIBC) $(LIBNOSYS) $(LIBGCC)
 
 all: $(LDPATH)$(LIBOPENCM3) $(BIN) $(HEX) $(DMP) size
 
