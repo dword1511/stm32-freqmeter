@@ -29,6 +29,8 @@ void systick_ms_setup(void) {
 }
 
 void timer_setup(void) {
+  /* NOTE: libopencm3 will automatically setup related GPIO and AFIO. */
+
   rcc_periph_clock_enable(RCC_TIM2);
   timer_reset(TIM2);
 
@@ -39,7 +41,6 @@ void timer_setup(void) {
   timer_disable_oc_output(TIM2, TIM_OC4);
 
   /* Timer mode: no divider, edge, count up */
-  //timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
   timer_disable_preload(TIM2);
   timer_continuous_mode(TIM2);
   timer_set_period(TIM2, 65535);
@@ -55,23 +56,30 @@ void timer_setup(void) {
   timer_enable_irq(TIM2, TIM_DIER_CC1IE);
 }
 
-int main(void) {
-  rcc_clock_setup_in_hse_8mhz_out_72mhz();
-  rcc_periph_clock_enable(RCC_GPIOA | RCC_GPIOB);
+void mco_setup(void) {
+  /* NOTE: AFIO already enabled by timer setup. If not, you need to enable it here. */
+
+  /* WTF: needs to "re-enable" GPIOA clock **separately** to get the MCO work.
+   * Maybe a bug in libopencm3 or STM32 or both? */
+
+  rcc_periph_clock_enable(RCC_GPIOA);
 
   /* Outputs 72MHz clock on PA8, for calibration. */
   // TODO: let user switch with button, or even cycle through different clock sources.
   // Available: NOCLK, SYSCLK, HSICLK, HSECLK, PLL / 2, and a bunch of debug outputs.
   // SYSCLK available only when SYSCLK < 50MHz.
-  // FIXME: no output?!
-  //gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO8);
-  //rcc_set_mco(RCC_CFGR_MCO_PLLCLK_DIV2);
+  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO8);
+  rcc_set_mco(RCC_CFGR_MCO_HSECLK); /* This merely sets RCC_CFGR, and does not care about GPIO or AFIO. */
+}
+
+int main(void) {
+  rcc_clock_setup_in_hse_8mhz_out_72mhz();
+  rcc_periph_clock_enable(RCC_GPIOA | RCC_GPIOB);
 
   /* Setup GPIOB Pin 1 for the LED. */
   /* NOTE: Maple Mini is different from maple! */
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
   gpio_set(GPIOB, GPIO1);
-  gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO0); /* TIM1_ETR. (Good news: all digital pins have schmitt trigger enabled.) */
 
   /* Setup GPIOB Pin 9 to pull up the D+ high. The circuit is active low. */
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO9);
@@ -83,6 +91,7 @@ int main(void) {
 
   timer_setup();
   systick_ms_setup();
+  mco_setup();
 
   /* Wait 500ms for USB setup to complete before sending anything. */
   /* Takes ~ 130ms on my machine */
@@ -92,6 +101,11 @@ int main(void) {
   char buffer[PACKET_SZIE];
   int len;
 
+  /* Skip the first sample: no resets happened and if we do the usual subtract here it will underflow. */
+  while (!updated);
+  updated = false;
+
+  /* The loop (for real). */
   while (true) {
     if (!updated) {
       continue;
@@ -101,7 +115,7 @@ int main(void) {
     show_dot = !show_dot;
     /* Subtract one extra overflow occurred during counter reset. */
     freq -= 65536;
-    /* TODO: The following line costs approx. 20KB. Find a alternative. */
+    /* TODO: The following line costs approx. 20KB. Find an alternative. */
     len = snprintf(buffer, PACKET_SZIE, "%4lu.%06lu MHz %c\r", freq / 1000000, freq % 1000000, show_dot ? '.' : ' ');
     if (len > 0) {
       len ++;
