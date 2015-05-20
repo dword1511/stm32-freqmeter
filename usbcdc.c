@@ -209,21 +209,21 @@ void usbcdc_init(void) {
 }
 
 uint16_t usbcdc_write(char* buf, size_t len) {
-  // TODO: handle len > 64...
   return usbd_ep_write_packet(usbd_dev, 0x82, buf, len);
 }
 
 /* Interrupts */
 
-// TODO: Howto aggregate them?
-void usb_wakeup_isr(void) {
+static void usb_int_relay(void) {
+  /* Need to pass a parameter... otherwise just alias it directly. */
   usbd_poll(usbd_dev);
 }
 
-void usb_hp_can_tx_isr(void) {
-  usbd_poll(usbd_dev);
-}
+void usb_wakeup_isr(void)
+__attribute__ ((alias ("usb_int_relay")));
 
-void usb_lp_can_rx0_isr(void) {
-  usbd_poll(usbd_dev);
-}
+void usb_hp_can_tx_isr(void)
+__attribute__ ((alias ("usb_int_relay")));
+
+void usb_lp_can_rx0_isr(void)
+__attribute__ ((alias ("usb_int_relay")));
