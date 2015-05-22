@@ -13,14 +13,15 @@ Features
 * USB CDC interface allows easy interfacing with PC.
 * Resolution down to 1Hz. (Accuracy limited by the crystal oscillator used.)
 * 1Hz update rate.
-* Configurable clock generator for diagnosis (output on *MCO** pin, aka. **PA8**).
+* Configurable clock generator for diagnosis (output on **MCO** pin, aka. **PA8**).
 * Configurable digital filter.
 * Holding support.
 
 Build and Flash
 ---------------
 
-Make sure you have `git` and the `gcc-arm-embedded` toolchain.
+Make sure you have `git` and the [`gcc-arm-embedded`](https://launchpad.net/gcc-arm-embedded) toolchain.
+You will also need [`stm32flash`](https://code.google.com/p/stm32flash/).
 You may also want to modify **Makefile** to specify the toolchain prefix and ISP serial port on your system.
 
 For the hardware, pull **BOOT1** or **PB2** down.
@@ -32,7 +33,8 @@ Once ready, type the following commands:
 
 
 ```
-git clone https://github.com/dword1511/stm32-trng.git
+https://github.com/dword1511/stm32-freqmeter.git
+cd stm32-freqmeter
 make
 make flash
 ```
