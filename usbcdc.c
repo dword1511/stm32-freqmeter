@@ -5,6 +5,10 @@
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
 
+#define EP_INT 0x83
+#define EP_OUT 0x82
+#define EP_IN  0x01
+
 #include "usbcdc.h"
 
 static const struct usb_device_descriptor dev = {
@@ -32,7 +36,7 @@ static const struct usb_device_descriptor dev = {
 static const struct usb_endpoint_descriptor comm_endp[] = {{
   .bLength            = USB_DT_ENDPOINT_SIZE,
   .bDescriptorType    = USB_DT_ENDPOINT,
-  .bEndpointAddress   = 0x83,
+  .bEndpointAddress   = EP_INT,
   .bmAttributes       = USB_ENDPOINT_ATTR_INTERRUPT,
   .wMaxPacketSize     = 16,
   .bInterval          = 255,
@@ -41,14 +45,14 @@ static const struct usb_endpoint_descriptor comm_endp[] = {{
 static const struct usb_endpoint_descriptor data_endp[] = {{
   .bLength            = USB_DT_ENDPOINT_SIZE,
   .bDescriptorType    = USB_DT_ENDPOINT,
-  .bEndpointAddress   = 0x01,
+  .bEndpointAddress   = EP_IN,
   .bmAttributes       = USB_ENDPOINT_ATTR_BULK,
   .wMaxPacketSize     = 64,
   .bInterval          = 1,
 }, {
   .bLength            = USB_DT_ENDPOINT_SIZE,
   .bDescriptorType    = USB_DT_ENDPOINT,
-  .bEndpointAddress   = 0x82,
+  .bEndpointAddress   = EP_OUT,
   .bmAttributes       = USB_ENDPOINT_ATTR_BULK,
   .wMaxPacketSize     = 64,
   .bInterval          = 1,
@@ -173,15 +177,10 @@ static int cdcacm_control_request(usbd_device *usbd_dev, struct usb_setup_data *
   return 0;
 }
 
-static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep) {
-  char buf[64];
-  usbd_ep_read_packet(usbd_dev, 0x01, buf, 64);
-}
-
 static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue) {
-  usbd_ep_setup(usbd_dev, 0x01, USB_ENDPOINT_ATTR_BULK, 64, cdcacm_data_rx_cb);
-  usbd_ep_setup(usbd_dev, 0x82, USB_ENDPOINT_ATTR_BULK, 64, NULL);
-  usbd_ep_setup(usbd_dev, 0x83, USB_ENDPOINT_ATTR_INTERRUPT, 16, NULL);
+  usbd_ep_setup(usbd_dev, EP_IN , USB_ENDPOINT_ATTR_BULK, 64, NULL);
+  usbd_ep_setup(usbd_dev, EP_OUT, USB_ENDPOINT_ATTR_BULK, 64, NULL);
+  usbd_ep_setup(usbd_dev, EP_INT, USB_ENDPOINT_ATTR_INTERRUPT, 16, NULL);
 
   usbd_register_control_callback(
         usbd_dev,
@@ -209,7 +208,20 @@ void usbcdc_init(void) {
 }
 
 uint16_t usbcdc_write(char* buf, size_t len) {
-  return usbd_ep_write_packet(usbd_dev, 0x82, buf, len);
+  return usbd_ep_write_packet(usbd_dev, EP_OUT, buf, len);
+}
+
+/* '\0' is used to indicate empty buffer here. */
+char usbcdc_getc(void) {
+  int ret;
+  char c;
+
+  ret = usbd_ep_read_packet(usbd_dev, EP_IN, &c, 1);
+  if (0 == ret) {
+    return '\0';
+  } else {
+    return c;
+  }
 }
 
 /* Interrupts */
