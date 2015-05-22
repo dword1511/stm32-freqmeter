@@ -19,6 +19,8 @@ static volatile bool updated = false;
 
 static bool show_dot = false;
 
+// FIXME: input bandwidth seems to be limited!
+
 
 void systick_ms_setup(void) {
   /* 72MHz clock, interrupt for every 72,000 CLKs (1ms). */
@@ -29,10 +31,19 @@ void systick_ms_setup(void) {
 }
 
 void timer_setup(void) {
-  /* NOTE: libopencm3 will automatically setup related GPIO and AFIO. */
+  /* NOTE: Input pins have schmitt filter. This is both good and bad.
+   * The good thing is that you do not need to bring your own.
+   * The bad thing is that anything above approximately 30MHz will not be registered.
+   * When connected to internal SYSCLK, timer TIM2 actually can run at 72MHz. */
 
   rcc_periph_clock_enable(RCC_TIM2);
   timer_reset(TIM2);
+
+  /* Disable inputs. */
+  timer_ic_disable(TIM2, TIM_IC1);
+  timer_ic_disable(TIM2, TIM_IC2);
+  timer_ic_disable(TIM2, TIM_IC3);
+  timer_ic_disable(TIM2, TIM_IC4);
 
   /* Disable outputs. */
   timer_disable_oc_output(TIM2, TIM_OC1);
@@ -57,27 +68,18 @@ void timer_setup(void) {
 }
 
 void mco_setup(void) {
-  /* NOTE: AFIO already enabled by timer setup. If not, you need to enable it here. */
-
-  /* WTF: needs to "re-enable" GPIOA clock **separately** to get the MCO work.
-   * Maybe a bug in libopencm3 or STM32 or both? */
-
-  rcc_periph_clock_enable(RCC_GPIOA);
-
-  /* Outputs 72MHz clock on PA8, for calibration. */
-  // TODO: let user switch with button, or even cycle through different clock sources.
-  // Available: NOCLK, SYSCLK, HSICLK, HSECLK, PLL / 2, and a bunch of debug outputs.
-  // SYSCLK available only when SYSCLK < 50MHz.
+  /* Outputs 8MHz clock on PA8, for calibration. */
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO8);
-  rcc_set_mco(RCC_CFGR_MCO_HSECLK); /* This merely sets RCC_CFGR, and does not care about GPIO or AFIO. */
+  rcc_set_mco(RCC_CFGR_MCO_HSECLK); /* This merely sets RCC_CFGR. */
 }
 
 int main(void) {
   rcc_clock_setup_in_hse_8mhz_out_72mhz();
-  rcc_periph_clock_enable(RCC_GPIOA | RCC_GPIOB);
+  rcc_periph_clock_enable(RCC_GPIOA); /* For MCO. */
+  rcc_periph_clock_enable(RCC_GPIOB); /* For LED, USB pull-up and TIM2. */
+  rcc_periph_clock_enable(RCC_AFIO); /* For MCO. */
 
   /* Setup GPIOB Pin 1 for the LED. */
-  /* NOTE: Maple Mini is different from maple! */
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
   gpio_set(GPIOB, GPIO1);
 
@@ -93,8 +95,9 @@ int main(void) {
   systick_ms_setup();
   mco_setup();
 
-  /* Wait 500ms for USB setup to complete before sending anything. */
+  /* Wait 500ms for USB setup to complete before trying to send anything. */
   /* Takes ~ 130ms on my machine */
+  // TODO: a better way?
   while (systick_ms < 500);
 
   /* The loop. */
@@ -104,6 +107,7 @@ int main(void) {
   /* Skip the first sample: no resets happened and if we do the usual subtract here it will underflow. */
   while (!updated);
   updated = false;
+  show_dot = !show_dot;
 
   /* The loop (for real). */
   while (true) {
