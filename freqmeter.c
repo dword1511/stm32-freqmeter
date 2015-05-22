@@ -19,8 +19,6 @@ static volatile bool updated = false;
 
 static bool show_dot = false;
 
-// FIXME: input bandwidth seems to be limited!
-
 
 void systick_ms_setup(void) {
   /* 72MHz clock, interrupt for every 72,000 CLKs (1ms). */
@@ -31,10 +29,7 @@ void systick_ms_setup(void) {
 }
 
 void timer_setup(void) {
-  /* NOTE: Input pins have schmitt filter. This is both good and bad.
-   * The good thing is that you do not need to bring your own.
-   * The bad thing is that anything above approximately 30MHz will not be registered.
-   * When connected to internal SYSCLK, timer TIM2 actually can run at 72MHz. */
+  /* NOTE: Digital input pins have schmitt filter. */
 
   rcc_periph_clock_enable(RCC_TIM2);
   timer_reset(TIM2);
@@ -56,7 +51,7 @@ void timer_setup(void) {
   timer_continuous_mode(TIM2);
   timer_set_period(TIM2, 65535);
   timer_slave_set_mode(TIM2, TIM_SMCR_SMS_ECM1);
-  timer_slave_set_filter(TIM2, TIM_IC_CK_INT_N_2);
+  timer_slave_set_filter(TIM2, TIM_CCMR1_IC1F_OFF);
   timer_slave_set_polarity(TIM2, TIM_ET_RISING);
   timer_slave_set_prescaler(TIM2, TIM_IC_PSC_OFF);
   timer_slave_set_trigger(TIM2, TIM_SMCR_TS_ETRF);
@@ -68,9 +63,9 @@ void timer_setup(void) {
 }
 
 void mco_setup(void) {
-  /* Outputs 8MHz clock on PA8, for calibration. */
+  /* Outputs 36MHz clock on PA8, for calibration. */
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO8);
-  rcc_set_mco(RCC_CFGR_MCO_HSECLK); /* This merely sets RCC_CFGR. */
+  rcc_set_mco(RCC_CFGR_MCO_SYSCLK_DIV2); /* This merely sets RCC_CFGR. */
 }
 
 int main(void) {
@@ -125,6 +120,8 @@ int main(void) {
       len ++;
       usbcdc_write(buffer, len);
     }
+
+    // TODO: let user setup MCO/filter/prescaler via COM port
   }
 
   return 0;
