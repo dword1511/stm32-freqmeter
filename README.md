@@ -33,7 +33,7 @@ Once ready, type the following commands:
 
 
 ```
-https://github.com/dword1511/stm32-freqmeter.git
+git clone https://github.com/dword1511/stm32-freqmeter.git
 cd stm32-freqmeter
 make
 make flash
