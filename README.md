@@ -114,6 +114,11 @@ Following filter configurations are available:
 * 375kHz
 * 281.25kHz
 
+Add-ons
+-------
+
+Please see the "addons" folder for details.
+
 Known Issues
 ------------
 
