@@ -9,6 +9,7 @@ OBJS        = freqmeter.o \
 DOCS        = README.html \
               addons/README.html \
               addons/femtocom/README.html \
+              addons/henrymeter/README.html \
 
 
 ###############################################################################
