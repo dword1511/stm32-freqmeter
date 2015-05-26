@@ -114,23 +114,23 @@ int main(int argc, char *argv[]) {
   }
 
   if (signal(SIGINT, sig_handler) == SIG_ERR) {
-    perror("Error setting signal handler: ");
+    perror("Error setting signal handler");
     return errno;
   }
   if (signal(SIGTERM, sig_handler) == SIG_ERR) {
-    perror("Error setting signal handler: ");
+    perror("Error setting signal handler");
     return errno;
   }
 
   if (term_setup()) {
-    perror("Error setting terminal up: ");
+    perror("Error setting terminal up");
     return errno;
   }
 
   int  serial_fd = -1;
   serial_fd = serial_open(argv[1]);
   if (serial_fd < 0) {
-    perror("Error opening serial port: ");
+    perror("Error opening serial port");
     return errno;
   }
 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
     /* Reserve space for '\0'. */
     len = read(serial_fd, buf, SERIAL_LINEBUF_SIZE - 1);
     if (len < 0) {
-      perror("Error reading serial port: ");
+      perror("Error reading serial port");
       break;
     }
     if (len == 0) {
