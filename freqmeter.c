@@ -214,6 +214,10 @@ int main(void) {
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
   gpio_set(GPIOB, GPIO1);
 
+  /* Pull PA1 down to GND, which is adjascent to timer imput and can be used as an convenient return path. */
+  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
+  gpio_clear(GPIOA, GPIO1);
+
   /* Setup PB9 to pull up the D+ high. The circuit is active low. */
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO9);
   gpio_clear(GPIOB, GPIO9);
