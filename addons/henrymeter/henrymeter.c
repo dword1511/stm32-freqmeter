@@ -124,15 +124,18 @@ static void print_help(const char *self) {
   fprintf(stderr, "\
 Usage: %s [-d serial] [-c cap] [-p]\n\
 \n\
-\t-c\t Set capacitance in the shorthand picofarad notation, e.g. 104 = 100nF.\n\
-\t  \t Default: 223 (22nF).\n\
-\t-d\t Set the USB CDC device, e.g. /dev/ttyACM0\n\
-\t  \t Default: /dev/ttyACM0\n\
+\t-c\t Set reference capacitance in the shorthand picofarad notation.\n\
+\t  \t e.g. 104 = 100nF \t Default: 223 (22nF)\n\
+\t-d\t Set the USB CDC device\n\
+\t  \t e.g. /dev/ttyACM0 \t Default: /dev/ttyACM0\n\
 \t-h\t Print this help.\n\
-\t-p\t Set this parameter when Pierce oscillator is used.\n\
+\t-o\t Set inductance offset.\n\
+\t  \t e.g. 105 = 1mH \t Default: 0 (no offset)\n\
+\t-p\t Set this parameter when Pierce/Colpitts oscillator is used.\n\
 \t  \t Capacitance will be halved.\n\
 \n\
-Example: %s -d /dev/ttyACM1 -c 224 -p\n\
+Example: %s -d /dev/ttyACM1 -c 224 -p -o 104\n\
+(220nF Cref, 100uH offset, Pierce/Colpitts oscillator, on ttyACM1)\n\
 \n", self, self);
 }
 
@@ -148,12 +151,13 @@ static void handle_bad_opts(void) {
 
 int main(int argc, char *argv[]) {
   bool   pierce      = false;
-  double capacitance = 22e3; /* pF, default to 22nF. */
+  double capacitance = 22e-9; /* F, default to 22nF. */
+  double offset      = 0.00f; /* H, detault to no offset. */
   char   *device     = "/dev/ttyACM0";
 
   int c;
   opterr = 0;
-  while ((c = getopt(argc, argv, "c:d:hp")) != -1) {
+  while ((c = getopt(argc, argv, "c:d:ho:p")) != -1) {
     switch (c) {
       case 'c': {
         /* Set capacitance. */
@@ -189,8 +193,28 @@ int main(int argc, char *argv[]) {
         break;
       }
 
+      case 'o': {
+        /* Set offset. */
+        /* Convert 104 to 10 * 10 ^ 4 nF. */
+        unsigned param = 0;
+        int cnt, exp;
+
+        cnt = sscanf(optarg, "%u", &param);
+        if ((cnt != 1) || (param < 10)) {
+          print_help(argv[0]);
+          return -EINVAL;
+        }
+
+        exp = param % 10; /* Last digit is the exponent. */
+        param /= 10;
+        offset = param * pow(10.0f, exp);
+        offset /= 1e9; /* nH -> H. */
+
+        break;
+      }
+
       case 'p': {
-        /* Set Pierce mode. */
+        /* Set Pierce/Colpitts mode. */
         /* Since here capacitors are in series, half the value. */
         pierce = true;
         break;
@@ -209,7 +233,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  fprintf(stdout, "Device: %s\nCapacitance: %.0lf pF\nPierce: %s\n\n", device, capacitance, pierce ? "yes" : "no");
+  fprintf(stdout, "Device: %s\nCapacitance: %.3lf nF\nPierce/Colpitts: %s\nOffset: %.3lf uH\n\n",
+           device,
+           capacitance * 1e9,
+           pierce ? "yes" : "no",
+           offset * 1e6
+         );
   if (pierce) {
     capacitance /= 2;
   }
@@ -257,6 +286,7 @@ int main(int argc, char *argv[]) {
         ind = INFINITY;
       }
 
+      ind -= offset;
       fprintf(stdout, "%15.3lf uH %c (%9.0lf Hz)\r", ind * 1e6, dot, freq); /* H -> uH. */
     }
 
