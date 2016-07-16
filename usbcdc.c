@@ -4,6 +4,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
+#include <libopencm3/stm32/st_usbfs.h>
 
 #define EP_INT 0x83
 #define EP_OUT 0x82
@@ -199,7 +200,7 @@ static const char *usb_strings[] = {
 };
 
 void usbcdc_init(void) {
-  usbd_dev = usbd_init(&stm32f103_usb_driver, &dev, &config, usb_strings, 3, usbd_control_buffer, sizeof(usbd_control_buffer));
+  usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev, &config, usb_strings, 3, usbd_control_buffer, sizeof(usbd_control_buffer));
   usbd_register_set_config_callback(usbd_dev, cdcacm_set_config);
 
   /* NOTE: Must be called after USB setup since this enables calling usbd_poll(). */
