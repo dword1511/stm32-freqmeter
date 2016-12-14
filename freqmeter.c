@@ -26,9 +26,9 @@ static volatile bool     hold         = false;
 static uint32_t mco_val[] = {
   RCC_CFGR_MCO_NOCLK,
   //RCC_CFGR_MCO_SYSCLK,       /* Will not be able to output. */
-  RCC_CFGR_MCO_HSICLK,
-  RCC_CFGR_MCO_HSECLK,
-  RCC_CFGR_MCO_PLLCLK_DIV2,
+  RCC_CFGR_MCO_HSI,
+  RCC_CFGR_MCO_HSE,
+  RCC_CFGR_MCO_PLL_DIV2,
   //RCC_CFGR_MCO_PLL2CLK,      /* No signal. */
   //RCC_CFGR_MCO_PLL3CLK_DIV2, /* No signal. */
   //RCC_CFGR_MCO_XT1,          /* No signal. */
