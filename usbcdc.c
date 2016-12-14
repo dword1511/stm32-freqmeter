@@ -4,6 +4,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
+#include <libopencm3/stm32/st_usbfs.h>
 
 #define EP_INT 0x83
 #define EP_OUT 0x82
