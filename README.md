@@ -114,6 +114,17 @@ Following filter configurations are available:
 * 375kHz
 * 281.25kHz
 
+To cycle through prescaler configurations, press `p`.
+The prescaler will scale down the input signal so higher frequencies
+can be measured as well (while sacrificing some precision).
+
+The following prescaler configurations are available:
+
+* Off.
+* 2
+* 4
+* 8
+
 Add-ons
 -------
 
@@ -122,8 +133,6 @@ Please see the "addons" folder for details.
 Known Issues
 ------------
 
-* The MCU has dividers which can be supported but currently are not.
-  Unless a meaningful use case is reported, I will not add support for it.
 * Currently the code drops 20 ticks out of 36,000,000 ticks (<0.6ppm error).
   However, before we use TCXO to supply clock to the MCU, fixing it (by multiplying 1.00000056)
   will not improve precision notably.

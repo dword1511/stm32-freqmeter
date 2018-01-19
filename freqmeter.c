@@ -97,6 +97,22 @@ static char *filters_name[] = {
 };
 static int filter_current = 0; /* Default to no filter. */
 
+static enum tim_ic_psc prescalers_val[] = {
+  TIM_IC_PSC_OFF,
+
+  TIM_IC_PSC_2,
+  TIM_IC_PSC_4,
+  TIM_IC_PSC_8,
+};
+static char *prescalers_name[] = {
+  "OFF",
+
+  "  2",
+  "  4",
+  "  8",
+};
+static int prescaler_current = 0; /* Default to no prescaler. */
+
 
 void systick_ms_setup(void) {
   /* 72MHz clock, interrupt for every 72,000 CLKs (1ms). */
@@ -131,7 +147,7 @@ void timer_setup(void) {
   timer_slave_set_mode(TIM2, TIM_SMCR_SMS_ECM1);
   timer_slave_set_filter(TIM2, filters_val[filter_current]);
   timer_slave_set_polarity(TIM2, TIM_ET_RISING);
-  timer_slave_set_prescaler(TIM2, TIM_IC_PSC_OFF);
+  timer_slave_set_prescaler(TIM2, prescalers_val[prescaler_current]);
   timer_slave_set_trigger(TIM2, TIM_SMCR_TS_ETRF);
   timer_update_on_overflow(TIM2);
 
@@ -185,6 +201,19 @@ void poll_command(void) {
       }
 
       timer_slave_set_filter(TIM2, filters_val[filter_current]);
+
+      return;
+    }
+
+    case 'p':
+    case 'P': {
+      /* Configure prescaler. */
+      prescaler_current ++;
+      if (prescaler_current >= ARRAY_SIZE(prescalers_val)) {
+        prescaler_current = 0;
+      }
+
+      timer_slave_set_prescaler(TIM2, prescalers_val[prescaler_current]);
 
       return;
     }
@@ -299,6 +328,8 @@ void sys_tick_handler(void) {
     /* Scratch pad to finalized result */
     if (!hold) {
       freq = freq_scratch + timer_get_counter(TIM2);
+      if (prescaler_current)
+        freq *= (1 << prescaler_current);
     }
     /* Reset the counter. This will generate one extra overflow for next measurement. */
     /* In case of nothing got counted, manually generate a reset to keep consistency. */
