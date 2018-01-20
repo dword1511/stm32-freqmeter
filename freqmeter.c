@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -113,6 +114,7 @@ static char *prescalers_name[] = {
 };
 static int prescaler_current = 0; /* Default to no prescaler. */
 
+static char buffer[BUFFER_SIZE];
 
 void systick_ms_setup(void) {
   /* 72MHz clock, interrupt for every 72,000 CLKs (1ms). */
@@ -160,6 +162,32 @@ void mco_setup(void) {
   /* Outputs 36MHz clock on PA8, for calibration. */
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO8);
   rcc_set_mco(mco_val[mco_current]); /* This merely sets RCC_CFGR. */
+}
+
+void usbcdc_printf(const char *fmt, ...) {
+  int len;
+  uint16_t written = 0;
+  va_list args;
+  va_start(args, fmt);
+
+  /* TODO: The following line costs approx. 20KB. Find an alternative if necessary. */
+  len = vsnprintf(
+    buffer,
+    BUFFER_SIZE,
+    fmt,
+    args
+  );
+  while (written < len) {
+    if ((len - written) > PACKET_SIZE) {
+      written += usbcdc_write(buffer + written, PACKET_SIZE);
+    } else {
+      written += usbcdc_write(buffer + written, len - written);
+    }
+  }
+}
+
+void usbcdc_clear_screen(void) {
+  usbcdc_printf("\033c\r");
 }
 
 void poll_command(void) {
@@ -221,7 +249,7 @@ void poll_command(void) {
     case '\n':
     case '\r': {
       /* Remote echo for newline -- for convenient data recording. */
-      usbcdc_write("\n\r", 2); /* This works since buffer is not modified. */
+      usbcdc_write("\r\n", 1); /* This works since buffer is not modified. */
 
       return;
     }
@@ -265,9 +293,6 @@ int main(void) {
   while (systick_ms < 500);
 
   /* The loop. */
-  char buffer[BUFFER_SIZE];
-  int len;
-  uint16_t written;
   uint32_t last_ms = 0;
 
   while (freq == 0);
@@ -280,30 +305,20 @@ int main(void) {
     // TODO: currently missing 20 ticks out of 36,000,000 ticks (<0.6ppm error).
     //       However, before we use TCXO to supply clock to the MCU, fixing it will not improve precision.
 
+    usbcdc_clear_screen();
+
     /* NOTE: Subtract one extra overflow (65536 ticks) occurred during counter reset. */
     /* TODO: The following line costs approx. 20KB. Find an alternative if necessary. */
-    len = snprintf(
-      buffer,
-      BUFFER_SIZE,
-      "%4lu.%06lu MHz %c [clock Out: %s] [Hold: %s] [digital Filter: %s]\r",
+    usbcdc_printf("%4lu.%06lu MHz %c [Hold: %s]\r\n\r\n",
       (freq - 65536) / 1000000,
       (freq - 65536) % 1000000,
       gpio_get(GPIOB, GPIO1) ? '.' : ' ',
-      mco_name[mco_current],
-      hold ? "ON " : "OFF",
-      filters_name[filter_current]
+      hold ? "ON " : "OFF"
     );
-    if (len > 0) {
-      written = 0;
 
-      while (written < len) {
-        if ((len - written) > PACKET_SIZE) {
-          written += usbcdc_write(buffer + written, PACKET_SIZE);
-        } else {
-          written += usbcdc_write(buffer + written, len - written);
-        }
-      }
-    }
+    usbcdc_printf("Clock output: %s\r\n", mco_name[mco_current]);
+    usbcdc_printf("Digital Filter: %s\r\n", filters_name[filter_current]);
+    usbcdc_printf("Pre-scaler: %s\r\n", prescalers_name[prescaler_current]);
 
     while (systick_ms < (last_ms + DISP_DELAY));
     last_ms = systick_ms;
