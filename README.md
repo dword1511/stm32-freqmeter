@@ -50,25 +50,34 @@ Typical terminal output will look like the following after being powered up:
 
 
 ```
-   0.000060 MHz . [clock Out:       OFF] [Hold: OFF] [digital Filter:        OFF]
+   0.000060 MHz . [Hold: OFF]
+
+Clock output:       OFF
+Digital Filter:        OFF
+Prescaler: OFF
 ```
 
-The output is 82 characters long, and those who insists using VT100 can modify the firmware a little bit or use `awk` over `picocom`.
-
-There are 5 parts in the line:
+There are 3 parts in the first line:
 
 * Frequency in MHz unit, with resolution down to 1Hz. If long wire is attached to input pin, 50/60Hz power-line interference might be shown.
 * An activity-indicating dot that blinks in-sync with the LED on board.
-* Diagnostic clock output configuration.
 * Holding indicator.
+
+The following lines show information about:
+* Diagnostic clock output configuration.
 * Digital filter configuration.
+* Prescaler configuration.
 
 To switch between different diagnostic clock outputs, press `o` in the terminal.
 The output will then change to something like:
 
 
 ```
-   8.015324 MHz . [clock Out:  8 MHz RC] [Hold: OFF] [digital Filter:        OFF]
+   8.015324 MHz . [Hold: OFF]
+
+Clock output:  8 MHz RC
+Digital Filter:        OFF
+Prescaler: OFF
 ```
 
 Following clock configurations are available:
@@ -82,17 +91,23 @@ To hold current measurement, press `h`. Press again to cancel holding:
 
 
 ```
-   8.014395 MHz . [clock Out:  8 MHz RC] [Hold: ON ] [digital Filter:        OFF]
-```
+   8.014395 MHz . [Hold: ON]
 
-Alternatively, you can also press `Enter` to make the data remain on screen and switch next measurement to a new line.
+Clock output:  8 MHz RC
+Digital Filter:        OFF
+Prescaler: OFF
+```
 
 To cycle through digital filter configurations, press `f`.
 The digital filter will suppress frequencies that is over one-half of the displayed value:
 
 
 ```
-   0.000000 MHz . [clock Out:  8 MHz RC] [Hold: OFF] [digital Filter:  9.000 MHz]
+   8.014395 MHz . [Hold: OFF]
+
+Clock output:  8 MHz RC
+Digital Filter:  9.000 MHz
+Prescaler: OFF
 ```
 
 Following filter configurations are available:
@@ -116,7 +131,15 @@ Following filter configurations are available:
 
 To cycle through prescaler configurations, press `p`.
 The prescaler will scale down the input signal so higher frequencies
-can be measured as well (while sacrificing some precision).
+can be measured as well (while sacrificing some precision):
+
+```
+   8.045592 MHz   [Hold: OFF]
+
+Clock output:  8 MHz RC
+Digital Filter:        OFF
+Pre-scaler:   2
+```
 
 The following prescaler configurations are available:
 
