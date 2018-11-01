@@ -128,7 +128,7 @@ void timer_setup(void) {
   /* NOTE: Digital input pins have Schmitt filter. */
 
   rcc_periph_clock_enable(RCC_TIM2);
-  timer_reset(TIM2);
+  rcc_periph_reset_pulse(RST_TIM2);
 
   /* Disable inputs. */
   timer_ic_disable(TIM2, TIM_IC1);
