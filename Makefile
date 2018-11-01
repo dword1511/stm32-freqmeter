@@ -1,6 +1,6 @@
 PROGRAM     = stm32-freqmeter
 CROSS       = arm-none-eabi
-LDSCRIPT    = stm32f103x8.ld
+LDSCRIPT    = libopencm3/lib/stm32/f1/stm32f103x8.ld
 SERIAL      = /dev/ttyUSB0
 OBJS        = freqmeter.o \
               usbcdc.o \
